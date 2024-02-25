@@ -1,0 +1,15 @@
+[package]
+name = "ironirc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-trait = "0.1.77"
+crossterm = {version = "0.27.0", features = ["event-stream"]}
+failure = "0.1.8"
+futures = "0.3.30"
+irc = {git="https://github.com/aatxe/irc.git", features=["toml_config"]}
+ratatui = "0.26.1"
+tokio = {features=["full"]}
