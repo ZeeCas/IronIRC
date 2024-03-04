@@ -1,11 +1,11 @@
 use ratatui::{
-    layout::{Alignment, Constraint, Layout, Margin},
-    style::{Color, Style},
+    layout::{Alignment, Constraint, Layout, Margin, Position},
+    style::{Color, Style, Stylize},
     widgets::{Block, BorderType, Borders, Paragraph, Scrollbar, ScrollbarOrientation, Tabs, Wrap},
     Frame,
 };
 
-use std::collections::HashMap as Hashmap;
+use std::{collections::HashMap as Hashmap, u16};
 
 use crate::app::App;
 
@@ -13,7 +13,12 @@ use crate::app::App;
 pub fn render(app: &mut App, frame: &mut Frame) {
     let messages = app.messages.clone();
     let mut tabs:Hashmap<String, Paragraph> = Hashmap::new();
+    let chunks = Layout::vertical([Constraint::Percentage(90), Constraint::Percentage(10)]).split(frame.size());
+    let vert_chunks = Layout::horizontal([Constraint::Percentage(90), Constraint::Percentage(10)]).split(chunks[0]);
+    let tab_chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(1)]).split(vert_chunks[0]);
+
     for title in &app.tab_titles {
+        let idx = app.tab_titles.iter().position(|x| x == title).unwrap();
         match messages.get(title) {
             None => {}
             Some(_) => {
@@ -25,26 +30,32 @@ pub fn render(app: &mut App, frame: &mut Frame) {
                     app.horizontal_scroll.push(0);
                     app.horizontal_scroll_state.push(Default::default());
                 };
-                tabs.insert(title.clone(), Paragraph::new(messages.get(title).unwrap().join(""))
-                                                            .block(
-                                                                Block::default()
-                                                                    .borders(Borders::ALL)
-                                                                    .border_type(BorderType::Rounded)
-                                                                    .title(title.to_string())
-                                                                    .title_style(Style::default().fg(Color::Yellow))
-                                                                    .style(Style::default().fg(Color::White)),
-                                                            )
-                                                            .alignment(Alignment::Left)
-                                                            .scroll((app.vertical_scroll[app.selected_tab], app.horizontal_scroll[app.selected_tab]))
-                                                            .wrap(Wrap { trim: false }));
-                                                        app.vertical_scroll_state[app.selected_tab] = app.vertical_scroll_state[app.selected_tab].content_length(messages.get(title).unwrap().len());
-                                                        app.horizontal_scroll_state[app.selected_tab] = app.horizontal_scroll_state[app.selected_tab].content_length(messages.get(title).unwrap().len());
+                let para = Paragraph::new(messages.get(title).unwrap().join(""))
+                                            .block(
+                                                    Block::default()
+                                                        .borders(Borders::ALL)
+                                                        .border_type(BorderType::Rounded)
+                                                        .title(title.to_string())
+                                                        .title_style(Style::default().fg(Color::Yellow))
+                                                        .style(Style::default().fg(Color::White)),
+                                                    )
+                                            .alignment(Alignment::Left)
+                                            .scroll((app.vertical_scroll[app.selected_tab], 0))
+                                            .wrap(Wrap { trim: true });
+                let needed = para.line_count(tab_chunks[1].width);
+                let available = tab_chunks[1].bottom() - tab_chunks[1].y;
+                // if idx == app.selected_tab {
+                //     println!("{}", tab_chunks[1].width);
+                // }
+                if idx == app.selected_tab && app.vertical_scroll[app.selected_tab] < needed.saturating_sub(available as usize) as u16 {
+                    app.vertical_scroll[app.selected_tab] = app.vertical_scroll[app.selected_tab].saturating_add(1);
+                }
+                tabs.insert(title.clone(), para);
+                app.vertical_scroll_state[app.selected_tab] = app.vertical_scroll_state[app.selected_tab].content_length(needed);
+                app.horizontal_scroll_state[app.selected_tab] = app.horizontal_scroll_state[app.selected_tab].content_length(needed);
                             }
         }
     }
-    let chunks = Layout::vertical([Constraint::Percentage(90), Constraint::Percentage(10)]).split(frame.size());
-    let vert_chunks = Layout::horizontal([Constraint::Percentage(90), Constraint::Percentage(10)]).split(chunks[0]);
-    let tab_chunks = Layout::vertical([Constraint::Length(3), Constraint::Min(1)]).split(vert_chunks[0]);
     let tabs_list = Tabs::new(app.tab_titles.clone())
         .block(
             Block::default()
@@ -111,8 +122,8 @@ pub fn render(app: &mut App, frame: &mut Frame) {
         true => frame.render_widget(users, vert_chunks[1]),
         false => {}
     }
-    frame.render_stateful_widget(Scrollbar::new(ScrollbarOrientation::VerticalRight), tab_chunks[1].inner(&Margin {
-        vertical: 1,
-        horizontal: 1,
-    }), &mut app.vertical_scroll_state[0])
+    // frame.render_stateful_widget(Scrollbar::new(ScrollbarOrientation::VerticalRight), tab_chunks[1].inner(&Margin {
+    //     vertical: 1,
+    //     horizontal: 1,
+    // }), &mut app.vertical_scroll_state[0])
 }

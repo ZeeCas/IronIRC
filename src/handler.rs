@@ -42,6 +42,9 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             KeyEvent {code: KeyCode::Esc, modifiers: KeyModifiers::NONE, ..} => {
                 app.mode = Mode::Normal;
             }
+            KeyEvent {code: KeyCode::Insert, ..} => {
+                app.mode = Mode::Normal;
+            }
             KeyEvent {code: KeyCode::Char(c), ..} => {
                 app.enter_char(c);
             }
@@ -64,7 +67,7 @@ pub fn handle_key_events(key_event: KeyEvent, app: &mut App) -> AppResult<()> {
             KeyEvent {code: KeyCode::Down, ..} => {
                 app.vertical_scroll[app.selected_tab] = app.vertical_scroll[app.selected_tab].saturating_add(1);
                 app.vertical_scroll_state[app.selected_tab] = app.vertical_scroll_state[app.selected_tab].position(app.vertical_scroll[app.selected_tab] as usize);
-            }
+            }   
             _ => {}
         },
     }
